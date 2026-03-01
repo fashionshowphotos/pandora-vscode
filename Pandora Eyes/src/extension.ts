@@ -6,6 +6,8 @@ import { FrictionEngine } from './friction';
 import { FrictionWriter } from './writer';
 
 const SESSION_ID = crypto.randomBytes(4).toString('hex');
+const MANIFEST_DIR = path.join(process.env['APPDATA'] || '', 'CoherentLight', 'manifests');
+const MANIFEST_FILE = path.join(MANIFEST_DIR, 'coherentlight.pandora-eyes.json');
 
 let engine: FrictionEngine | null = null;
 let writer: FrictionWriter | null = null;
@@ -14,6 +16,38 @@ let outputChannel: vscode.OutputChannel | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
 let windowTimer: ReturnType<typeof setInterval> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let _outputPath: string | null = null;
+
+function writeManifest() {
+    try {
+        fs.mkdirSync(MANIFEST_DIR, { recursive: true });
+        const config = vscode.workspace.getConfiguration('pandoraEyes');
+        const manifest = {
+            id: 'coherentlight.pandora-eyes',
+            displayName: 'Pandora Eyes',
+            version: '0.1.0',
+            state: {
+                active: isActive,
+                sessionId: SESSION_ID,
+                outputPath: _outputPath,
+                writeAllowed: vscode.workspace.isTrusted,
+            },
+            capabilities: {
+                commands: ['manifest'],
+                observes: ['textEdits', 'saves', 'tabSwitches', 'diagnostics', 'debugSessions', 'terminals', 'tasks', 'selections', 'windowState'],
+                emits: 'friction windows (JSONL) to Bus _train/',
+                config: {
+                    enabled: config.get<boolean>('enabled', true),
+                    windowSeconds: config.get<number>('windowSeconds', 30),
+                    calibrationMode: config.get<boolean>('calibrationMode', true),
+                    scoreThreshold: config.get<number>('scoreThreshold', 0.0),
+                },
+            },
+            updatedAt: new Date().toISOString(),
+        };
+        fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2));
+    } catch { /* non-fatal */ }
+}
 
 // ============================================================================
 // ACTIVATION
@@ -44,6 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         log(`Output path: ${outputPath}`);
+        _outputPath = outputPath;
         writer = new FrictionWriter(outputPath, SESSION_ID);
     }
     engine = new FrictionEngine(SESSION_ID);
@@ -171,6 +206,14 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('pandoraEyes.manifest', () => {
+            writeManifest();
+            try { return JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf8')); } catch { return null; }
+        })
+    );
+
+    writeManifest();
     log(`Pandora Eyes active. Session: ${SESSION_ID}, Window: ${windowSec}s`);
 }
 

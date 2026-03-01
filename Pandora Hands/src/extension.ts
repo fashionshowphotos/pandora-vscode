@@ -4,9 +4,48 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { RpcServer } from './rpc_server';
 
+const MANIFEST_DIR = path.join(process.env['APPDATA'] || '', 'CoherentLight', 'manifests');
+const MANIFEST_FILE = path.join(MANIFEST_DIR, 'coherentlight.pandora-hands.json');
+
 let server: RpcServer | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
+let _port: number = 7345;
+let _readOnly: boolean = false;
+
+function writeManifest(connected: boolean = false) {
+    try {
+        fs.mkdirSync(MANIFEST_DIR, { recursive: true });
+        const config = vscode.workspace.getConfiguration('pandoraHands');
+        const manifest = {
+            id: 'coherentlight.pandora-hands',
+            displayName: 'Pandora Hands',
+            version: '0.1.0',
+            state: {
+                listening: !!server,
+                connected,
+                port: _port,
+                readOnly: _readOnly,
+                wsUrl: `ws://127.0.0.1:${_port}`,
+            },
+            capabilities: {
+                commands: ['manifest'],
+                rpcActions: ['file_read', 'file_write', 'file_delete', 'terminal_run', 'editor_open', 'editor_focus', 'workspace_info'],
+                transport: 'WebSocket',
+                auth: 'token (see globalStorage/auth_token)',
+                config: {
+                    enabled: config.get<boolean>('enabled', true),
+                    port: config.get<number>('port', 7345),
+                    readOnly: config.get<boolean>('readOnly', false),
+                    allowShellExecution: config.get<boolean>('allowShellExecution', false),
+                    auditLog: config.get<boolean>('auditLog', true),
+                },
+            },
+            updatedAt: new Date().toISOString(),
+        };
+        fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2));
+    } catch { /* non-fatal */ }
+}
 
 // ============================================================================
 // ACTIVATION
@@ -29,6 +68,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const port = config.get<number>('port', 7345);
     const readOnly = config.get<boolean>('readOnly', false);
+    _port = port;
+    _readOnly = readOnly;
     const auditEnabled = config.get<boolean>('auditLog', true);
 
     // Auth token — read from file or auto-generate
@@ -72,6 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Track connection state
     server.onConnectionChange = (connected: boolean) => {
         updateStatusBar(connected);
+        writeManifest(connected);
     };
 
     // Config reactivity
@@ -93,6 +135,15 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push({ dispose: () => deactivate() });
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('pandoraHands.manifest', () => {
+            writeManifest(false);
+            try { return JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf8')); } catch { return null; }
+        })
+    );
+
+    writeManifest(false);
 
     if (outputChannel) {
         outputChannel.appendLine(`Pandora Hands active on ws://127.0.0.1:${port}`);
