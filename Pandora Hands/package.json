@@ -1,0 +1,74 @@
+{
+  "name": "pandora-hands",
+  "displayName": "Pandora Hands",
+  "description": "VS Code execution adapter for Pandora — structured RPC over WebSocket",
+  "version": "0.1.0",
+  "publisher": "coherentlight",
+  "engines": { "vscode": "^1.85.0" },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Pandora Hands",
+      "properties": {
+        "pandoraHands.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable RPC server"
+        },
+        "pandoraHands.port": {
+          "type": "number",
+          "default": 7345,
+          "description": "WebSocket server port"
+        },
+        "pandoraHands.tokenFile": {
+          "type": "string",
+          "default": "",
+          "description": "Path to shared auth token file (auto-generated if empty)"
+        },
+        "pandoraHands.readOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only allow read actions (block write/execute)"
+        },
+        "pandoraHands.auditLog": {
+          "type": "boolean",
+          "default": true,
+          "description": "Write JSONL audit log of all RPC calls"
+        },
+        "pandoraHands.debugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug output channel logging"
+        },
+        "pandoraHands.allowShellExecution": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow Pandora to execute shell commands via terminal (disabled by default)"
+        },
+        "pandoraHands.allowedPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Extra directories Pandora can access (outside workspace folders)"
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": false, "description": "Pandora Hands requires trusted workspaces for file operations" }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.3.0"
+  }
+}

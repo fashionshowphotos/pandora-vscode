@@ -1,0 +1,71 @@
+{
+  "name": "pandora-eyes",
+  "displayName": "Pandora Eyes",
+  "description": "Developer friction observation for Pandora",
+  "version": "0.1.0",
+  "publisher": "coherentlight",
+  "engines": { "vscode": "^1.85.0" },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Pandora Eyes",
+      "properties": {
+        "pandoraEyes.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable friction observation"
+        },
+        "pandoraEyes.outputPath": {
+          "type": "string",
+          "default": "",
+          "description": "JSONL output path (auto-detected from Bus v1 _train/ if empty)",
+          "scope": "application"
+        },
+        "pandoraEyes.windowSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 300,
+          "description": "Aggregation window in seconds"
+        },
+        "pandoraEyes.calibrationMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all windows regardless of score (first week)"
+        },
+        "pandoraEyes.scoreThreshold": {
+          "type": "number",
+          "default": 0.0,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Minimum score to log (0.0 in calibration mode)"
+        },
+        "pandoraEyes.heartbeatIntervalMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Heartbeat interval for liveness detection"
+        },
+        "pandoraEyes.debugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug output channel logging"
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": "limited", "description": "Observes edit events only, no file system writes in untrusted workspaces" }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
